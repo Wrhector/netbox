@@ -493,6 +493,7 @@ class RackCSVForm(forms.ModelForm):
     width = forms.ChoiceField(
         choices=(
             (RACK_WIDTH_19IN, '19'),
+            (RACK_WIDTH_OCP_21IN, '21'),
             (RACK_WIDTH_23IN, '23'),
         ),
         help_text='Rail-to-rail width (in inches)'

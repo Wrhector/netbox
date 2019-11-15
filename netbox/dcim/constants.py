@@ -400,6 +400,11 @@ CABLE_TYPE_CAT6A = 1610
 CABLE_TYPE_CAT7 = 1700
 CABLE_TYPE_DAC_ACTIVE = 1800
 CABLE_TYPE_DAC_PASSIVE = 1810
+CABLE_TYPE_DAC_PASSIVE_SFP = 1850
+CABLE_TYPE_DAC_PASSIVE_SFP_PLUS = 1855
+CABLE_TYPE_DAC_PASSIVE_SFP28 = 1860
+CABLE_TYPE_DAC_PASSIVE_QSFP = 1865
+CABLE_TYPE_DAC_PASSIVE_QSFP28 = 1870
 CABLE_TYPE_COAXIAL = 1900
 CABLE_TYPE_MMF = 3000
 CABLE_TYPE_MMF_OM1 = 3010
@@ -422,6 +427,11 @@ CABLE_TYPE_CHOICES = (
             (CABLE_TYPE_CAT7, 'CAT7'),
             (CABLE_TYPE_DAC_ACTIVE, 'Direct Attach Copper (Active)'),
             (CABLE_TYPE_DAC_PASSIVE, 'Direct Attach Copper (Passive)'),
+            (CABLE_TYPE_DAC_PASSIVE_SFP, 'Direct Attach Copper SFP 1G (Passive)'),
+            (CABLE_TYPE_DAC_PASSIVE_SFP_PLUS, 'Direct Attach Copper SFP+ 10G (Passive)'),
+            (CABLE_TYPE_DAC_PASSIVE_SFP28, 'Direct Attach Copper SFP28 25G (Passive)'),
+            (CABLE_TYPE_DAC_PASSIVE_QSFP, 'Direct Attach Copper QSFP+ 40G (Passive)'),
+            (CABLE_TYPE_DAC_PASSIVE_QSFP28, 'Direct Attach Copper QSFP28 100G (Passive)'),
             (CABLE_TYPE_COAXIAL, 'Coaxial'),
         ),
     ),

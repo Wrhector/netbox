@@ -379,7 +379,7 @@
                                         <td>{{ leg.outlet_count }}</td>
                                         <td title="Max {{ leg.maximum }}">{{ leg.allocated }}</td>
                                         <td>{{ leg.available_current }}A</td>
-                                        <td>{% utilization_graph leg.allocated|percentage:leg.available_power %}</td>
+                                        <td>{% utilization_graph leg.allocated|percentage:leg.available_current %}</td>
                                     </tr>
                                 {% endfor %}
                             {% endwith %}

@@ -1,3 +1,4 @@
+import math
 from collections import OrderedDict
 from itertools import count, groupby
 
@@ -2052,20 +2053,87 @@ class PowerPort(CableTermination, ComponentModel):
             }
 
             # Calculate per-leg aggregates for three-phase feeds
+            # Assuming power factor of 1
             if self._connected_powerfeed and self._connected_powerfeed.phase == POWERFEED_PHASE_3PHASE:
-                for leg, leg_name in POWERFEED_LEG_CHOICES:
+                l2l = {}
+                for leg in (POWERFEED_LEG_AB, POWERFEED_LEG_BC, POWERFEED_LEG_CA):
                     outlet_ids = PowerOutlet.objects.filter(power_port=self, feed_leg=leg).values_list('pk', flat=True)
                     utilization = PowerPort.objects.filter(_connected_poweroutlet_id__in=outlet_ids).aggregate(
                         maximum_draw_total=Sum('maximum_draw'),
                         allocated_draw_total=Sum('allocated_draw'),
                     )
+                    allocated_current = (utilization['allocated_draw_total'] or 0) / self._connected_powerfeed.voltage
+                    maximum_current = (utilization['maximum_draw_total'] or 0) / self._connected_powerfeed.voltage
+                    l2l[leg] = {
+                        'use': allocated_current,
+                        'max': maximum_current,
+                    }
+                for leg, leg_name in POWERFEED_LEG_CHOICES:
+                    if leg in (POWERFEED_LEG_AB, POWERFEED_LEG_BC, POWERFEED_LEG_CA):
+                        continue
+                    # Single phase loads
+                    outlet_ids = PowerOutlet.objects.filter(power_port=self, feed_leg=leg).values_list('pk', flat=True)
+                    utilization = PowerPort.objects.filter(_connected_poweroutlet_id__in=outlet_ids).aggregate(
+                        maximum_draw_total=Sum('maximum_draw'),
+                        allocated_draw_total=Sum('allocated_draw'),
+                    )
+                    # Now we need to add the L-L loads
+                    if leg == POWERFEED_LEG_A:
+                        use_current = math.sqrt(
+                            l2l[POWERFEED_LEG_AB]['use'] ** 2 + l2l[POWERFEED_LEG_CA]['use'] ** 2 +
+                            l2l[POWERFEED_LEG_CA]['use'] * l2l[POWERFEED_LEG_AB]['use'])
+                        max_current = math.sqrt(
+                            l2l[POWERFEED_LEG_AB]['max'] ** 2 + l2l[POWERFEED_LEG_CA]['max'] ** 2 +
+                            l2l[POWERFEED_LEG_CA]['max'] * l2l[POWERFEED_LEG_AB]['max'])
+                    elif leg == POWERFEED_LEG_B:
+                        use_current = math.sqrt(
+                            l2l[POWERFEED_LEG_AB]['use'] ** 2 + l2l[POWERFEED_LEG_BC]['use'] ** 2 +
+                            l2l[POWERFEED_LEG_BC]['use'] * l2l[POWERFEED_LEG_AB]['use'])
+                        max_current = math.sqrt(
+                            l2l[POWERFEED_LEG_AB]['max'] ** 2 + l2l[POWERFEED_LEG_BC]['max'] ** 2 +
+                            l2l[POWERFEED_LEG_BC]['max'] * l2l[POWERFEED_LEG_AB]['max'])
+                    elif leg == POWERFEED_LEG_C:
+                        use_current = math.sqrt(
+                            l2l[POWERFEED_LEG_BC]['use'] ** 2 + l2l[POWERFEED_LEG_CA]['use'] ** 2 +
+                            l2l[POWERFEED_LEG_CA]['use'] * l2l[POWERFEED_LEG_BC]['use'])
+                        max_current = math.sqrt(
+                            l2l[POWERFEED_LEG_BC]['max'] ** 2 + l2l[POWERFEED_LEG_CA]['max'] ** 2 +
+                            l2l[POWERFEED_LEG_CA]['max'] * l2l[POWERFEED_LEG_BC]['max'])
+                    else:
+                        use_current = 0
+                        max_current = 0
+
+                    single_phase_voltage = round(self._connected_powerfeed.voltage / 1.732)
+
+                    single_allocated_current = (utilization['allocated_draw_total'] or 0) / single_phase_voltage
+                    single_max_current = (utilization['maximum_draw_total'] or 0) / single_phase_voltage
+
+                    total_allocated_current = use_current + single_allocated_current
+                    total_max_current = max_current + single_max_current
+
                     ret['legs'].append({
                         'name': leg_name,
-                        'allocated': utilization['allocated_draw_total'] or 0,
-                        'maximum': utilization['maximum_draw_total'] or 0,
+                        'allocated_single': round(single_allocated_current * self._connected_powerfeed.voltage),
+                        'max_single': round(single_max_current * self._connected_powerfeed.voltage),
+                        'allocated': round(total_allocated_current * self._connected_powerfeed.voltage),
+                        'maximum': round(total_max_current * self._connected_powerfeed.voltage),
                         'outlet_count': len(outlet_ids),
+                        'available_power': self._connected_powerfeed.available_power,
                     })
 
+                outlet_ids = PowerOutlet.objects.filter(power_port=self, feed_leg=None).values_list('pk', flat=True)
+                utilization = PowerPort.objects.filter(_connected_poweroutlet_id__in=outlet_ids).aggregate(
+                    maximum_draw_total=Sum('maximum_draw'),
+                    allocated_draw_total=Sum('allocated_draw'),
+                )
+                ret['allocated'] = (utilization['allocated_draw_total'] or 0) + max(
+                    sum(r['allocated_single'] for r in ret['legs']),
+                    sum(r['allocated'] for r in ret['legs']),
+                )
+                ret['maximum'] = (utilization['allocated_draw_total'] or 0) + max(
+                    sum(r['max_single'] for r in ret['legs']),
+                    sum(r['maximum'] for r in ret['legs']),
+                )
             return ret
 
         # Default to administratively defined values
@@ -2104,7 +2172,7 @@ class PowerOutlet(CableTermination, ComponentModel):
         choices=POWERFEED_LEG_CHOICES,
         blank=True,
         null=True,
-        help_text="Phase (for three-phase feeds)"
+        help_text="Phase (for three-phase feeds), or Phase to Phase connection"
     )
     connection_status = models.NullBooleanField(
         choices=CONNECTION_STATUS_CHOICES,
@@ -3077,7 +3145,8 @@ class PowerFeed(ChangeLoggedModel, CableTermination, CustomFieldModel):
     )
     voltage = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1)],
-        default=120
+        default=120,
+        help_text="Phase to Phase voltage for 3 Phase"
     )
     amperage = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1)],

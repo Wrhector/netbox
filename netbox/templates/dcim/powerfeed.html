@@ -133,7 +133,7 @@
                     <td>{{ powerfeed.get_supply_display }}</td>
                 </tr>
                 <tr>
-                    <td>Voltage</td>
+                    <td>Voltage{% if powerfeed.phase == 3 %}(Phase-Phase){% endif %}</td>
                     <td>{{ powerfeed.voltage }}V</td>
                 </tr>
                 <tr>

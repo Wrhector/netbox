@@ -375,13 +375,11 @@
                                 </tr>
                                 {% for leg in utilization.legs %}
                                     <tr>
-                                        <td style="padding-left: 20px">Leg {{ leg.name }}</td>
+                                        <td style="padding-left: 20px">Phase {{ leg.name }}</td>
                                         <td>{{ leg.outlet_count }}</td>
                                         <td>{{ leg.allocated }}</td>
-                                        <td>{{ powerfeed.available_power|divide:3 }}VA</td>
-                                        {% with phase_available=powerfeed.available_power|divide:3 %}
-                                            <td>{% utilization_graph leg.allocated|percentage:phase_available %}</td>
-                                        {% endwith %}
+                                        <td>{{ leg.available_power }}VA</td>
+                                        <td>{% utilization_graph leg.allocated|percentage:leg.available_power %}</td>
                                     </tr>
                                 {% endfor %}
                             {% endwith %}
@@ -687,7 +685,7 @@
                                     <th class="pk"><input type="checkbox" class="toggle" title="Toggle all" /></th>
                                 {% endif %}
                                 <th>Name</th>
-                                <th>Input/Leg</th>
+                                <th>Input/Phase</th>
                                 <th>Description</th>
                                 <th>Cable</th>
                                 <th colspan="3">Connection</th>

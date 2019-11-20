@@ -2119,7 +2119,7 @@ class PowerPort(CableTermination, ComponentModel):
                         'maximum': round(total_max_current),
                         'outlet_count': len(outlet_ids),
                         'available_current': (self._connected_powerfeed.amperage *
-                                              self._connected_powerfeed.max_utilization),
+                                              self._connected_powerfeed.max_utilization / 100),
                     })
 
                 outlet_ids = PowerOutlet.objects.filter(power_port=self, feed_leg=None).values_list('pk', flat=True)

@@ -377,8 +377,8 @@
                                     <tr>
                                         <td style="padding-left: 20px">Phase {{ leg.name }}</td>
                                         <td>{{ leg.outlet_count }}</td>
-                                        <td>{{ leg.allocated }}</td>
-                                        <td>{{ leg.available_power }}VA</td>
+                                        <td title="Max {{ leg.maximum }}">{{ leg.allocated }}</td>
+                                        <td>{{ leg.available_current }}A</td>
                                         <td>{% utilization_graph leg.allocated|percentage:leg.available_power %}</td>
                                     </tr>
                                 {% endfor %}

@@ -2113,12 +2113,13 @@ class PowerPort(CableTermination, ComponentModel):
 
                     ret['legs'].append({
                         'name': leg_name,
-                        'allocated_single': round(single_allocated_current * self._connected_powerfeed.voltage),
-                        'max_single': round(single_max_current * self._connected_powerfeed.voltage),
-                        'allocated': round(total_allocated_current * self._connected_powerfeed.voltage),
-                        'maximum': round(total_max_current * self._connected_powerfeed.voltage),
+                        'allocated_single': utilization['allocated_draw_total'] or 0,
+                        'max_single': utilization['maximum_draw_total'] or 0,
+                        'allocated': round(total_allocated_current),
+                        'maximum': round(total_max_current),
                         'outlet_count': len(outlet_ids),
-                        'available_power': self._connected_powerfeed.available_power,
+                        'available_current': (self._connected_powerfeed.amperage *
+                                              self._connected_powerfeed.max_utilization),
                     })
 
                 outlet_ids = PowerOutlet.objects.filter(power_port=self, feed_leg=None).values_list('pk', flat=True)
@@ -2126,14 +2127,15 @@ class PowerPort(CableTermination, ComponentModel):
                     maximum_draw_total=Sum('maximum_draw'),
                     allocated_draw_total=Sum('allocated_draw'),
                 )
-                ret['allocated'] = (utilization['allocated_draw_total'] or 0) + max(
-                    sum(r['allocated_single'] for r in ret['legs']),
-                    sum(r['allocated'] for r in ret['legs']),
-                )
-                ret['maximum'] = (utilization['allocated_draw_total'] or 0) + max(
-                    sum(r['max_single'] for r in ret['legs']),
-                    sum(r['maximum'] for r in ret['legs']),
-                )
+                # So it's not easily possible to work out the actual power for an unbalanced load, so we can guess
+                ret['allocated'] = ((utilization['allocated_draw_total'] or 0) +
+                                    sum(r['allocated_single'] for r in ret['legs']) +
+                                    sum(r['use'] for r in l2l.values()) * self._connected_powerfeed.voltage
+                                    )
+                ret['maximum'] = ((utilization['maximum_draw_total'] or 0) +
+                                  sum(r['max_single'] for r in ret['legs']) +
+                                  sum(r['max'] for r in l2l.values()) * self._connected_powerfeed.voltage
+                                  )
             return ret
 
         # Default to administratively defined values

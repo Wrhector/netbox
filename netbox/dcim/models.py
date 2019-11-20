@@ -2128,14 +2128,14 @@ class PowerPort(CableTermination, ComponentModel):
                     allocated_draw_total=Sum('allocated_draw'),
                 )
                 # So it's not easily possible to work out the actual power for an unbalanced load, so we can guess
-                ret['allocated'] = ((utilization['allocated_draw_total'] or 0) +
-                                    sum(r['allocated_single'] for r in ret['legs']) +
-                                    sum(r['use'] for r in l2l.values()) * self._connected_powerfeed.voltage
-                                    )
-                ret['maximum'] = ((utilization['maximum_draw_total'] or 0) +
-                                  sum(r['max_single'] for r in ret['legs']) +
-                                  sum(r['max'] for r in l2l.values()) * self._connected_powerfeed.voltage
-                                  )
+                ret['allocated'] = round((utilization['allocated_draw_total'] or 0) +
+                                         sum(r['allocated_single'] for r in ret['legs']) +
+                                         sum(r['use'] for r in l2l.values()) * self._connected_powerfeed.voltage
+                                         )
+                ret['maximum'] = round((utilization['maximum_draw_total'] or 0) +
+                                       sum(r['max_single'] for r in ret['legs']) +
+                                       sum(r['max'] for r in l2l.values()) * self._connected_powerfeed.voltage
+                                       )
             return ret
 
         # Default to administratively defined values
